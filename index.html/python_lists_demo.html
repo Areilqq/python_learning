@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Lists Interactive Demo</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'python-blue': '#3776ab',
+                        'python-yellow': '#ffd43b'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        function PythonListsDemo() {
+            const [listItems, setListItems] = useState([1, 2, 3, 4, 5]);
+            const [inputValue, setInputValue] = useState('');
+            const [operationHistory, setOperationHistory] = useState([]);
+            const [lastOperation, setLastOperation] = useState(null);
+
+            const operations = [
+                {
+                    name: 'Append',
+                    description: 'Add an item to the end of the list',
+                    action: (value) => {
+                        const newList = [...listItems, value];
+                        setListItems(newList);
+                        addToHistory('append', value, newList);
+                        setLastOperation({ name: 'Append', code: `my_list.append(${value})` });
+                    },
+                    requiresInput: true
+                },
+                {
+                    name: 'Pop',
+                    description: 'Remove and return the last item',
+                    action: () => {
+                        if (listItems.length > 0) {
+                            const poppedItem = listItems[listItems.length - 1];
+                            const newList = listItems.slice(0, -1);
+                            setListItems(newList);
+                            addToHistory('pop', poppedItem, newList);
+                            setLastOperation({ name: 'Pop', code: 'my_list.pop()' });
+                        }
+                    },
+                    requiresInput: false
+                },
+                {
+                    name: 'Insert',
+                    description: 'Insert an item at a specific position',
+                    action: (value) => {
+                        const [item, position] = value.split(',').map(v => v.trim());
+                        const pos = parseInt(position) || 0;
+                        const newList = [...listItems];
+                        newList.splice(pos, 0, item);
+                        setListItems(newList);
+                        addToHistory('insert', `${item} at position ${pos}`, newList);
+                        setLastOperation({ name: 'Insert', code: `my_list.insert(${pos}, "${item}")` });
+                    },
+                    requiresInput: true,
+                    placeholder: 'item, position (e.g., "hello, 2")'
+                },
+                {
+                    name: 'Remove',
+                    description: 'Remove the first occurrence of an item',
+                    action: (value) => {
+                        const newList = listItems.filter(item => item != value);
+                        if (newList.length !== listItems.length) {
+                            setListItems(newList);
+                            addToHistory('remove', value, newList);
+                            setLastOperation({ name: 'Remove', code: `my_list.remove(${value})` });
+                        }
+                    },
+                    requiresInput: true
+                },
+                {
+                    name: 'Sort',
+                    description: 'Sort the list in ascending order',
+                    action: () => {
+                        const newList = [...listItems].sort((a, b) => {
+                            if (typeof a === 'number' && typeof b === 'number') {
+                                return a - b;
+                            }
+                            return String(a).localeCompare(String(b));
+                        });
+                        setListItems(newList);
+                        addToHistory('sort', 'ascending', newList);
+                        setLastOperation({ name: 'Sort', code: 'my_list.sort()' });
+                    },
+                    requiresInput: false
+                },
+                {
+                    name: 'Reverse',
+                    description: 'Reverse the order of the list',
+                    action: () => {
+                        const newList = [...listItems].reverse();
+                        setListItems(newList);
+                        addToHistory('reverse', 'reversed', newList);
+                        setLastOperation({ name: 'Reverse', code: 'my_list.reverse()' });
+                    },
+                    requiresInput: false
+                },
+                {
+                    name: 'Clear',
+                    description: 'Remove all items from the list',
+                    action: () => {
+                        setListItems([]);
+                        addToHistory('clear', 'all items', []);
+                        setLastOperation({ name: 'Clear', code: 'my_list.clear()' });
+                    },
+                    requiresInput: false
+                }
+            ];
+
+            const addToHistory = (operation, value, result) => {
+                const historyItem = {
+                    operation,
+                    value,
+                    result: [...result],
+                    timestamp: new Date().toLocaleTimeString()
+                };
+                setOperationHistory(prev => [historyItem, ...prev.slice(0, 9)]);
+            };
+
+            const resetList = () => {
+                setListItems([1, 2, 3, 4, 5]);
+                setOperationHistory([]);
+                setLastOperation(null);
+            };
+
+            const executeOperation = (operation) => {
+                if (operation.requiresInput && !inputValue.trim()) {
+                    alert('Please enter a value for this operation');
+                    return;
+                }
+                
+                try {
+                    operation.action(inputValue);
+                    setInputValue('');
+                } catch (error) {
+                    alert(`Error: ${error.message}`);
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+                    {/* Header */}
+                    <div className="bg-white shadow-lg border-b border-gray-200">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h1 className="text-3xl font-bold text-gray-900">
+                                        🐍 Python Lists Interactive Demo
+                                    </h1>
+                                    <p className="mt-2 text-gray-600">
+                                        Learn Python list operations through interactive examples
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={resetList}
+                                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                                >
+                                    🔄 Reset List
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            {/* Left Panel - List Operations */}
+                            <div className="space-y-6">
+                                {/* Current List Display */}
+                                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+                                    <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                                        📋 Current List
+                                    </h2>
+                                    <div className="bg-gray-50 rounded-lg p-4 min-h-[80px]">
+                                        {listItems.length === 0 ? (
+                                            <div className="text-gray-500 text-center py-4">
+                                                List is empty
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-wrap gap-2">
+                                                {listItems.map((item, index) => (
+                                                    <div
+                                                        key={index}
+                                                        className="bg-python-blue text-white px-3 py-2 rounded-lg font-mono text-sm flex items-center space-x-2"
+                                                    >
+                                                        <span className="text-python-yellow text-xs">[{index}]</span>
+                                                        <span>{item}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="mt-3 text-sm text-gray-600">
+                                        Length: {listItems.length} | Type: {typeof listItems[0]}
+                                    </div>
+                                </div>
+
+                                {/* Input Field */}
+                                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+                                    <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                                        ✏️ Input Value
+                                    </h3>
+                                    <input
+                                        type="text"
+                                        value={inputValue}
+                                        onChange={(e) => setInputValue(e.target.value)}
+                                        placeholder="Enter value for list operations..."
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-python-blue focus:border-transparent"
+                                    />
+                                </div>
+
+                                {/* Operation Buttons */}
+                                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+                                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                                        🎮 List Operations
+                                    </h3>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {operations.map((operation, index) => (
+                                            <button
+                                                key={index}
+                                                onClick={() => executeOperation(operation)}
+                                                className="bg-gradient-to-r from-python-blue to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-3 rounded-lg font-medium transition-all transform hover:scale-105 hover:shadow-lg"
+                                            >
+                                                <div className="text-sm font-bold">{operation.name}</div>
+                                                <div className="text-xs opacity-90">{operation.description}</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Operation History */}
+                                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+                                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                                        📚 Operation History
+                                    </h3>
+                                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                                        {operationHistory.map((item, index) => (
+                                            <div
+                                                key={index}
+                                                className="bg-gray-50 rounded-lg p-3 border-l-4 border-python-blue"
+                                            >
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <span className="font-semibold text-python-blue">
+                                                            {item.operation.charAt(0).toUpperCase() + item.operation.slice(1)}
+                                                        </span>
+                                                        <span className="text-gray-600 ml-2">
+                                                            {item.value}
+                                                        </span>
+                                                    </div>
+                                                    <span className="text-xs text-gray-500">{item.timestamp}</span>
+                                                </div>
+                                                <div className="text-sm text-gray-600 mt-1">
+                                                    Result: [{item.result.join(', ')}]
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {operationHistory.length === 0 && (
+                                            <div className="text-gray-500 text-center py-4">
+                                                No operations yet
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right Panel - Python Code */}
+                            <div className="space-y-6">
+                                {/* Python Code Display */}
+                                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+                                    <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                                        🐍 Python Code
+                                    </h2>
+                                    <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
+                                        <pre className="text-green-400 font-mono text-sm">
+                                            <code>{`# Python List Operations Demo
+
+# Initialize the list
+my_list = [${listItems.join(', ')}]
+
+# List operations:`}
+                                            </code>
+                                        </pre>
+                                    </div>
+                                </div>
+
+                                {/* Last Operation Code */}
+                                {lastOperation && (
+                                    <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+                                        <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                                            🔍 Last Operation: {lastOperation.name}
+                                        </h3>
+                                        <div className="bg-gray-900 rounded-lg p-4">
+                                            <pre className="text-green-400 font-mono text-sm">
+                                                <code>{lastOperation.code}</code>
+                                            </pre>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Python List Methods Reference */}
+                                <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
+                                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                                        📖 Python List Methods Reference
+                                    </h3>
+                                    <div className="space-y-3">
+                                        {operations.map((operation, index) => (
+                                            <div key={index} className="border-l-4 border-gray-200 pl-4">
+                                                <div className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
+                                                    {operation.pythonCode ? operation.pythonCode('example') : `my_list.${operation.name.toLowerCase()}()`}
+                                                </div>
+                                                <div className="text-sm text-gray-600 mt-1">
+                                                    {operation.description}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Tips and Tricks */}
+                                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl shadow-lg p-6 border border-yellow-200">
+                                    <h3 className="text-lg font-semibold text-yellow-800 mb-4">
+                                        💡 Pro Tips
+                                    </h3>
+                                    <ul className="space-y-2 text-sm text-yellow-700">
+                                        <li>• Lists are mutable - they can be changed after creation</li>
+                                        <li>• Indexing starts at 0, so the first element is at position 0</li>
+                                        <li>• Negative indices count from the end (-1 is the last element)</li>
+                                        <li>• Use .copy() or [:] to create a copy of a list</li>
+                                        <li>• List comprehensions are a powerful way to create lists</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<PythonListsDemo />);
+    </script>
+</body>
+</html>
